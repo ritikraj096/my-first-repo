@@ -13,14 +13,11 @@ jobs:
 
     steps:
  
-      - name: Checkout code
-        uses: actions/checkout@v3
-        with:
-          clean: true
-
       # Step 1: Checkout code
       - name: Checkout code
         uses: actions/checkout@v3
+        with:
+           clean: true
 
       # Step 2: Build Docker image
       - name: Build Docker image
