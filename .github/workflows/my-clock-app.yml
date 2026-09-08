@@ -1,0 +1,40 @@
+name: Deploy Clock App
+
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Checkout code
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # Step 2: Build Docker image
+      - name: Build Docker image
+        run: |
+          docker build -t clock-app .
+          echo "Build Done"
+
+      # Step 3: Run Docker container
+      - name: Run Docker container
+        run: |
+          docker run -d -p 8081:80 --name clock clock-app
+
+      # Step 4: Verify site
+      - name: Verify site
+        run: |
+          sleep 5
+          curl -s http://localhost:8081 || exit 1
+
+      # Step 5: Rollback if failed
+      - name: Rollback if failed
+        if: failure()
+        run: |
+          docker stop clock || true
+          docker run -d -p 8081:80 clock-app:previous || true
