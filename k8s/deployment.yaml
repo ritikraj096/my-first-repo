@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: clock-app
-        image: YOUR_DOCKERHUB_USERNAME/clock-app:latest
+        image: ritikraj096/clock-app:latest
         ports:
         - containerPort: 80
 
