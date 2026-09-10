@@ -6,27 +6,27 @@ on:
       - master
   workflow_dispatch:
 
-
 jobs:
   build-and-deploy:
     runs-on: self-hosted
 
     steps:
-      # test kubernetes    
+      # Test Kubernetes cluster connection
       - name: Test cluster connection
         run: kubectl get nodes
- 
+
       # Step 1: Checkout code
       - name: Checkout code
         uses: actions/checkout@v3
         with:
-           clean: true
+          clean: true
 
       # Step 2a: Build Docker image
       - name: Build Docker image
         run: |
           docker build -t clock-app .
           echo "Build Done"
+
       # Step 2b: Push Docker image to Docker Hub
       - name: Push Docker image to Docker Hub
         run: |
@@ -34,21 +34,27 @@ jobs:
           docker tag clock-app ${{ secrets.DOCKERHUB_USERNAME }}/clock-app:latest
           docker push ${{ secrets.DOCKERHUB_USERNAME }}/clock-app:latest
 
+      # Step 3: Set up kubectl
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'v1.30.0'
 
-      # Step 3: Run Docker container
-      - name: Run Docker container
+      # Step 4: Configure kubeconfig
+      - name: Configure kubeconfig
         run: |
-          docker run -d -p 8081:80 --name clock clock-app
+          mkdir -p $HOME/.kube
+          echo "${{ secrets.KUBECONFIG_DATA }}" > $HOME/.kube/config
 
-      # Step 4: Verify site
-      - name: Verify site
+      # Step 5: Deploy to Kubernetes
+      - name: Deploy to Kubernetes
         run: |
-          sleep 5
-          curl -s http://localhost:8081 || exit 1
+          kubectl apply -f k8s/deployment.yaml
+          kubectl apply -f k8s/service.yaml
+          kubectl rollout status deployment/clock-app
 
-      # Step 5: Rollback if failed
-      - name: Rollback if failed
-        if: failure()
+      # Step 6: Verify service
+      - name: Verify service
         run: |
-          docker stop clock || true
-          docker run -d -p 8081:80 clock-app:previous || true
+          kubectl get pods
+          kubectl get svc clock-app-service
